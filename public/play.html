@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#050816">
+<title>Kosmická bitva</title>
+<style>
+  :root { --c:#7fb8ff; --c2:#3a6cc4; --cl:#dbeaff; --bg:#050816; }
+  body.team-0 { --c:#3db8ff; --c2:#0b4f8a; --cl:#d6f0ff; }
+  body.team-1 { --c:#ff7a3c; --c2:#8b2208; --cl:#ffe0d0; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: #fff; font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; overscroll-behavior: none; }
+  body { background:
+      radial-gradient(1.5px 1.5px at 12% 18%, #fff8 50%, transparent 51%), radial-gradient(1px 1px at 78% 12%, #fff9 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 40% 70%, #fff7 50%, transparent 51%), radial-gradient(1px 1px at 88% 64%, #fff8 50%, transparent 51%),
+      radial-gradient(1px 1px at 22% 88%, #fff9 50%, transparent 51%), radial-gradient(1.5px 1.5px at 62% 40%, #fff6 50%, transparent 51%),
+      radial-gradient(120% 70% at 50% -10%, #1d2a66 0%, transparent 60%), radial-gradient(90% 60% at 100% 100%, #3a1450 0%, transparent 60%), var(--bg); }
+  .screen { display: none; min-height: 100%; padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom)); flex-direction: column; align-items: center; }
+  .screen.on { display: flex; }
+  h1 { margin: 6vh 0 4px; font-size: clamp(34px, 11vw, 54px); font-weight: 900; text-align: center; letter-spacing: .5px; text-shadow: 0 0 24px #7aa8ff88; line-height: 1.05; }
+  .sub { color: #ffffffb0; letter-spacing: 3px; font-size: 12px; text-transform: uppercase; text-align: center; margin-bottom: 4vh; }
+  input { width: 100%; max-width: 380px; font: inherit; font-size: 22px; font-weight: 700; padding: 16px 18px; border-radius: 16px; border: 2px solid #ffffff30; background: #ffffff12; color: #fff; text-align: center; outline: none; }
+  input:focus { border-color: #8fb8ff; box-shadow: 0 0 0 4px #8fb8ff33; }
+  button.big { width: 100%; max-width: 380px; margin-top: 16px; font: inherit; font-size: 22px; font-weight: 900; padding: 17px; border-radius: 16px; border: 0; color: #06102a; background: linear-gradient(180deg, #bfe0ff, #6fa8ff); box-shadow: 0 8px 28px #4f86ff55; }
+  button.big:active { transform: translateY(2px); }
+  .hint { color: #ffffff90; font-size: 14px; margin-top: 14px; text-align: center; max-width: 340px; }
+
+  /* tým */
+  .planet { position: relative; width: min(58vw, 38vh); height: min(58vw, 38vh); border-radius: 50%; margin: 4vh 0 3vh; overflow: hidden; animation: float 5s ease-in-out infinite; }
+  .team-0 .planet { background: radial-gradient(circle at 34% 30%, #ffffff77 0, #fff0 14%), radial-gradient(circle at 40% 45%, #6fd0ff 0, #1b78c9 45%, #0a2f7a 75%, #04122e 100%); box-shadow: 0 0 70px #3db8ffaa, inset -22px -22px 46px #000a; }
+  .team-0 .planet::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 42%, #58a653 0 17%, #0000 18%), radial-gradient(ellipse at 64% 62%, #5eaa4c 0 13%, #0000 14%), radial-gradient(ellipse at 70% 28%, #fff 0 9%, #0000 10%), radial-gradient(ellipse at 22% 70%, #ffffffd0 0 8%, #0000 9%); opacity: .9; }
+  .team-1 .planet { background: radial-gradient(circle at 34% 30%, #ffd9b8aa 0, #fff0 14%), radial-gradient(circle at 40% 45%, #ff9d5c 0, #d6481b 38%, #5a1306 72%, #1a0502 100%); box-shadow: 0 0 70px #ff7a3caa, inset -22px -22px 46px #000b; }
+  .team-1 .planet::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 28% 44%, #ffd25a 0 5%, #0000 6%), radial-gradient(ellipse at 60% 30%, #ffb040 0 7%, #0000 8%), radial-gradient(ellipse at 66% 66%, #ffd25a 0 6%, #0000 7%), radial-gradient(ellipse at 34% 72%, #ff9a30 0 8%, #0000 9%); opacity: .85; filter: blur(1px); }
+  @keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+  .tname { font-size: clamp(40px, 13vw, 64px); font-weight: 900; color: var(--c); text-shadow: 0 0 30px var(--c); letter-spacing: 2px; margin: 0; }
+  .tline { font-size: 20px; margin: 4px 0 0; text-align: center; }
+  .pill { margin-top: 3vh; padding: 12px 20px; border-radius: 999px; background: #ffffff14; border: 1px solid #ffffff26; font-size: 16px; text-align: center; }
+  .dots::after { content: ""; animation: dots 1.4s steps(4) infinite; }
+  @keyframes dots { 0% { content: "" } 25% { content: "." } 50% { content: ".." } 75% { content: "..." } }
+  .counts { display: flex; gap: 22px; margin-top: 18px; font-size: 15px; color: #ffffffb8; }
+  .counts b { font-size: 22px; }
+  .c0 { color: #3db8ff } .c1 { color: #ff7a3c }
+
+  /* hra */
+  #s-game { justify-content: flex-start; padding-top: max(12px, env(safe-area-inset-top)); }
+  .top { width: 100%; max-width: 520px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+  .chip { font-weight: 900; color: var(--c); font-size: 17px; letter-spacing: 1px; }
+  .time { font-size: 34px; font-weight: 900; background: #0a1030aa; border: 2px solid #ffffff30; border-radius: 14px; padding: 2px 14px; font-variant-numeric: tabular-nums; }
+  .time.low { color: #ff6a5a; border-color: #ff6a5a; animation: pulse .6s infinite alternate; }
+  @keyframes pulse { to { box-shadow: 0 0 22px #ff3b2f88; } }
+  .score { text-align: right; font-size: 15px; color: #ffffffc0; } .score b { color: var(--cl); font-size: 22px; }
+  .bar { width: 100%; max-width: 520px; margin-top: 12px; }
+  .bar .track { display: flex; height: 18px; border-radius: 9px; overflow: hidden; background: #ffffff14; }
+  .bar .a { background: linear-gradient(90deg, #1a79c9, #3db8ff); transition: width .5s; } .bar .b { background: linear-gradient(90deg, #ff7a3c, #c13a10); transition: width .5s; }
+  .bar .nums { display: flex; justify-content: space-between; font-size: 13px; margin-top: 4px; font-weight: 800; }
+  .qbox { width: 100%; max-width: 520px; margin-top: 14px; background: #ffffff10; border: 1px solid #ffffff22; border-radius: 20px; padding: 16px 18px; min-height: 98px; display: flex; flex-direction: column; justify-content: center; }
+  .qn { font-size: 12px; color: #ffffff80; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .qt { font-size: clamp(20px, 5.6vw, 27px); font-weight: 800; line-height: 1.22; }
+  .opts { width: 100%; max-width: 520px; display: grid; gap: 10px; margin-top: 12px; }
+  .opt { display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; font: inherit; font-size: clamp(17px, 4.8vw, 21px); font-weight: 700; color: #fff; padding: 13px 14px; border-radius: 16px; border: 2px solid #ffffff2a; background: #ffffff12; transition: transform .08s, background .15s, border-color .15s; }
+  .opt:active { transform: scale(.985); }
+  .opt .l { flex: 0 0 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 900; background: var(--c2); color: #fff; }
+  .opt.ok { background: #1c9b4e; border-color: #7dffb0; } .opt.ok .l { background: #0a6a31; }
+  .opt.bad { background: #b52a2a; border-color: #ff9a9a; } .opt.bad .l { background: #7a1313; }
+  .opt.dim { opacity: .45; }
+  .fb { min-height: 28px; margin-top: 8px; font-weight: 900; font-size: 18px; text-align: center; line-height: 1.25; }
+  .fb.ok { color: #7dffb0; } .fb.bad { color: #ff9a9a; }
+  .lock { width: 100%; max-width: 520px; height: 5px; border-radius: 3px; background: #ffffff14; overflow: hidden; margin-top: 4px; opacity: 0; }
+  .lock i { display: block; height: 100%; background: #ff9a9a; width: 100%; }
+  .lock.on { opacity: 1; } .lock.on i { animation: lockbar 1.9s linear forwards; } @keyframes lockbar { to { width: 0 } }
+  .flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; }
+  .flash.ok { background: radial-gradient(circle, #3dff8a55, transparent 70%); opacity: 1; transition: none; } .flash.bad { background: radial-gradient(circle, #ff3b3b55, transparent 70%); opacity: 1; transition: none; }
+
+  /* konec */
+  .big-emoji { font-size: 90px; margin-top: 7vh; filter: drop-shadow(0 0 24px #ffffff55); }
+  .res { font-size: clamp(34px, 10vw, 50px); font-weight: 900; text-align: center; margin: 6px 0; line-height: 1.1; }
+  .res.win { color: #ffe27a; text-shadow: 0 0 26px #ffb800aa; } .res.lose { color: #ff9a8a; } .res.tie { color: #fff; }
+  .card { width: 100%; max-width: 420px; margin-top: 16px; background: #ffffff10; border: 1px solid #ffffff22; border-radius: 18px; padding: 14px 18px; }
+  .card h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #ffffff90; }
+  .row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 17px; border-bottom: 1px solid #ffffff12; } .row:last-child { border: 0; }
+  .conn { position: fixed; left: 0; right: 0; top: 0; padding: 8px; text-align: center; background: #b8860b; color: #fff; font-weight: 800; transform: translateY(-110%); transition: transform .25s; z-index: 9; }
+  .conn.on { transform: none; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(150%); background: #111a3ae6; border: 1px solid #ffffff40; padding: 12px 18px; border-radius: 14px; font-weight: 700; transition: transform .3s; z-index: 9; max-width: 90vw; text-align: center; }
+  .toast.on { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="conn" id="conn">Připojuji se k hře…</div>
+
+<section class="screen on" id="s-join">
+  <h1>KOSMICKÁ<br>BITVA</h1>
+  <div class="sub">Marie Terezie · týmový kvíz</div>
+  <input id="name" maxlength="16" placeholder="Tvoje přezdívka" autocomplete="off" autocapitalize="words" enterkeyhint="go">
+  <button class="big" id="go">Připojit se 🚀</button>
+  <div class="hint">Do týmu tě zařadíme automaticky. Odpovídej co nejrychleji a správně – každá správná odpověď přidá sílu vaší raketě!</div>
+</section>
+
+<section class="screen" id="s-team">
+  <div class="sub" style="margin-top:4vh">Tvůj tým</div>
+  <div class="planet" id="planet"></div>
+  <h2 class="tname" id="tname">AQUA</h2>
+  <p class="tline" id="tline">Modrá oceánská planeta</p>
+  <div class="pill">Čekáme na start hry<span class="dots"></span></div>
+  <div class="counts"><span>🌊 AQUA <b class="c0" id="n0">0</b></span><span>🔥 IGNIS <b class="c1" id="n1">0</b></span></div>
+  <div class="hint">Zdravím, <b id="me"></b>! Až učitel spustí hru, začnou otázky. Máš na to pár minut.</div>
+</section>
+
+<section class="screen" id="s-game">
+  <div class="top">
+    <div class="chip" id="gchip">AQUA</div>
+    <div class="time" id="time">3:00</div>
+    <div class="score">správně <b id="mine">0</b></div>
+  </div>
+  <div class="bar"><div class="track"><div class="a" id="bar0" style="width:50%"></div><div class="b" id="bar1" style="width:50%"></div></div>
+    <div class="nums"><span class="c0">AQUA <span id="p0">0</span></span><span class="c1"><span id="p1">0</span> IGNIS</span></div></div>
+  <div class="qbox"><div class="qn" id="qn">Připravuji otázku…</div><div class="qt" id="qt"></div></div>
+  <div class="opts" id="opts"></div>
+  <div class="fb" id="fb"></div>
+  <div class="lock" id="lock"><i></i></div>
+</section>
+
+<section class="screen" id="s-end">
+  <div class="big-emoji" id="eemoji">🏆</div>
+  <div class="res" id="eres">Tým AQUA vyhrál!</div>
+  <div class="sub" id="esub" style="margin:0">Planeta IGNIS byla zničena</div>
+  <div class="card"><h3>Síla raket</h3>
+    <div class="row"><span class="c0">AQUA</span><b id="e0">0</b></div><div class="row"><span class="c1">IGNIS</span><b id="e1">0</b></div>
+    <div class="row"><span>Tvoje správné odpovědi</span><b id="emine">0</b></div></div>
+  <div class="card"><h3>Nejlepší střelci</h3><div id="etop"></div></div>
+  <div class="hint">Sleduj velkou obrazovku – právě se ničí planeta! 💥<br>Čekej na další kolo.</div>
+</section>
+
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var TEAMS = [{ n: 'AQUA', d: 'Modrá oceánská planeta', e: '🌊' }, { n: 'IGNIS', d: 'Rudá sopečná planeta', e: '🔥' }];
+  function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  var me = { id: lsGet('kb_id'), name: lsGet('kb_name') };
+  var ws, st = null, offset = 0, team = 0, joined = false, locked = false, endMsg = null, myScore = 0, autoJoin = !!(me.id && me.name), curQ = null;
+
+  function show(id) { ['s-join', 's-team', 's-game', 's-end'].forEach(function (s) { $(s).classList.toggle('on', s === id); }); }
+  function setTeam(t) { team = t; document.body.className = 'team-' + t; $('tname').textContent = TEAMS[t].n; $('tline').textContent = TEAMS[t].d; $('gchip').textContent = TEAMS[t].e + ' ' + TEAMS[t].n; }
+  function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(function () { t.classList.remove('on'); }, 2600); }
+  function vib(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  function now() { return Date.now() + offset; }
+  function fmt(ms) { var s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60); }
+
+  function connect() {
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+    ws.onopen = function () { $('conn').classList.remove('on'); if (joined || autoJoin) doJoin(); };
+    ws.onclose = function () { $('conn').classList.add('on'); setTimeout(connect, 1200); };
+    ws.onmessage = function (ev) { var m; try { m = JSON.parse(ev.data); } catch (e) { return; } onMsg(m); };
+  }
+  function doJoin() { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'join', id: me.id, name: me.name })); }
+
+  function onMsg(m) {
+    if (m.t === 'joined') {
+      me.id = m.id; me.name = m.name; lsSet('kb_id', m.id); lsSet('kb_name', m.name);
+      joined = true; $('me').textContent = m.name; setTeam(m.team); route();
+    } else if (m.t === 'team') { setTeam(m.team); toast('Byl jsi přesunut do týmu ' + TEAMS[m.team].n + ' (vyrovnání týmů)'); }
+    else if (m.t === 'state') {
+      st = m; offset = m.now - Date.now();
+      if (m.you) { if (m.you.team !== team) setTeam(m.you.team); myScore = m.you.score; $('mine').textContent = myScore; }
+      if (m.phase === 'lobby') { endMsg = null; curQ = null; }
+      route();
+    }
+    else if (m.t === 'q') { curQ = m; renderQ(m); route(); }
+    else if (m.t === 'full') toast('Hra je plná, zkus to znovu později.');
+    else if (m.t === 'res') feedback(m);
+    else if (m.t === 'end') { endMsg = m; if (m.you) myScore = m.you.score; renderEnd(); route(); }
+  }
+
+  function route() {
+    if (!joined) return show('s-join');
+    if (!st) return;
+    if (st.phase === 'lobby') { show('s-team'); $('n0').textContent = st.counts[0]; $('n1').textContent = st.counts[1]; }
+    else if (st.phase === 'running') { show('s-game'); updateBar(); }
+    else { if (endMsg) { show('s-end'); } else show('s-game'); }
+  }
+  function updateBar() {
+    if (!st) return; var a = st.power[0], b = st.power[1], tot = a + b;
+    $('bar0').style.width = (tot ? (a / tot * 100) : 50) + '%'; $('bar1').style.width = (tot ? (b / tot * 100) : 50) + '%';
+    $('p0').textContent = a; $('p1').textContent = b;
+  }
+
+  function renderQ(m) {
+    locked = false; $('fb').textContent = ''; $('fb').className = 'fb'; $('lock').className = 'lock';
+    $('qn').textContent = 'Otázka ' + m.n; $('qt').textContent = m.text;
+    var box = $('opts'); box.innerHTML = '';
+    m.opts.forEach(function (t, i) {
+      var b = document.createElement('button'); b.className = 'opt'; b.type = 'button';
+      var l = document.createElement('span'); l.className = 'l'; l.textContent = 'ABCD'[i];
+      var s = document.createElement('span'); s.textContent = t; b.appendChild(l); b.appendChild(s);
+      b.addEventListener('click', function () { choose(i, b); });
+      box.appendChild(b);
+    });
+  }
+  function choose(i, btn) {
+    if (locked || !ws || ws.readyState !== 1) return; locked = true;
+    ws.send(JSON.stringify({ t: 'answer', c: i }));
+    btn.style.borderColor = '#fff';
+  }
+  function feedback(m) {
+    var btns = $('opts').children, fl = $('flash');
+    for (var k = 0; k < btns.length; k++) { if (k === m.correct) btns[k].classList.add('ok'); else if (k === m.picked) btns[k].classList.add('bad'); else btns[k].classList.add('dim'); }
+    $('mine').textContent = m.score;
+    if (m.ok) { $('fb').textContent = '✔ Správně! +1 síla rakety'; $('fb').className = 'fb ok'; vib(40); }
+    else { $('fb').textContent = '✖ Špatně – správná odpověď svítí zeleně'; $('fb').className = 'fb bad'; $('lock').className = 'lock on'; vib([80, 60, 80]); }
+    fl.className = 'flash ' + (m.ok ? 'ok' : 'bad'); setTimeout(function () { fl.className = 'flash'; }, 120);
+  }
+
+  function renderEnd() {
+    if (!endMsg) return; var r = endMsg.result, t = team;
+    $('e0').textContent = r.powers[0]; $('e1').textContent = r.powers[1]; $('emine').textContent = myScore;
+    var res = $('eres'), em = $('eemoji'), sub = $('esub');
+    if (r.winner < 0) { res.className = 'res tie'; res.textContent = 'Remíza!'; em.textContent = '🤝'; sub.textContent = 'Rakety se srazily – obě planety přežily'; }
+    else if (r.winner === t) { res.className = 'res win'; res.textContent = 'Váš tým vyhrál!'; em.textContent = '🏆'; sub.textContent = 'Planeta ' + TEAMS[1 - t].n + ' byla zničena'; }
+    else { res.className = 'res lose'; res.textContent = 'Váš tým prohrál'; em.textContent = '💥'; sub.textContent = 'Planeta ' + TEAMS[t].n + ' byla zničena'; }
+    var box = $('etop'); box.innerHTML = '';
+    (r.top || []).forEach(function (p, i) {
+      var row = document.createElement('div'); row.className = 'row';
+      var a = document.createElement('span'); a.textContent = (i + 1) + '. ' + p.name; a.className = 'c' + p.team;
+      var b = document.createElement('b'); b.textContent = p.score; row.appendChild(a); row.appendChild(b); box.appendChild(row);
+    });
+  }
+
+  setInterval(function () {
+    if (!st || st.phase !== 'running') return;
+    var left = st.endsAt - now(), el = $('time'); el.textContent = fmt(left); el.classList.toggle('low', left <= 10000);
+  }, 200);
+
+  $('go').addEventListener('click', function () {
+    var n = $('name').value.trim(); if (!n) { $('name').focus(); return; }
+    me.name = n; autoJoin = true; me.id = me.id || ''; doJoin();
+  });
+  $('name').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('go').click(); });
+  $('name').value = me.name;
+  connect();
+})();
+</script>
+</body>
+</html>

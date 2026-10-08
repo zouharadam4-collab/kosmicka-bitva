@@ -1,0 +1,12 @@
+# Nasazení na Render.com (zdarma): New + → Blueprint → vyber tento repozitář
+services:
+  - type: web
+    name: kosmicka-bitva
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /api/info
+    envVars:
+      - key: HOST_KEY
+        sync: false          # při vytvoření zadáš své heslo (třeba: tereziebitva2026)

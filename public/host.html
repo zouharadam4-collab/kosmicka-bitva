@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kosmická bitva – ovládací obrazovka</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #03040d; color: #fff; font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+  canvas { position: fixed; inset: 0; display: block; }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #03040d; font-size: 28px; letter-spacing: 3px; z-index: 20; }
+  #lobby { position: fixed; inset: 0; pointer-events: none; }
+  #lobby > * { pointer-events: auto; }
+  #center { position: absolute; left: 50%; top: 19vh; transform: translateX(-50%); width: min(26vw, 37vh); min-width: 250px; display: flex; flex-direction: column; align-items: center; gap: 1.1vh; }
+  #qrcard { background: #fff; border-radius: 20px; padding: 10px; box-shadow: 0 0 60px #6fa8ff77, 0 10px 40px #0009; width: 100%; aspect-ratio: 1; }
+  #qrcard img { width: 100%; height: 100%; display: block; }
+  #how { font-size: clamp(16px, 2.1vh, 24px); text-align: center; color: #ffffffcc; line-height: 1.35; }
+  #url { font-family: Consolas, "Courier New", monospace; font-size: clamp(16px, 2.6vh, 28px); font-weight: 700; color: #bfe0ff; background: #0b1230aa; padding: 6px 14px; border-radius: 12px; border: 1px solid #ffffff30; word-break: break-all; text-align: center; }
+  select { font: inherit; background: #0b1230; color: #fff; border: 1px solid #ffffff44; border-radius: 10px; padding: 6px 10px; font-size: clamp(14px, 2vh, 20px); }
+  .row { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  button { font: inherit; cursor: pointer; border: 0; border-radius: 14px; font-weight: 800; color: #fff; background: #ffffff1c; border: 1px solid #ffffff3c; padding: 9px 16px; font-size: clamp(14px, 2vh, 19px); }
+  button:hover { background: #ffffff2e; }
+  button.go { background: linear-gradient(180deg, #ffd27a, #ff8a2a); color: #2a1200; border: 0; font-size: clamp(20px, 3.4vh, 34px); padding: 12px 34px; box-shadow: 0 8px 30px #ff8a2a77; }
+  button.go:hover { filter: brightness(1.08); }
+  button:disabled { opacity: .45; cursor: default; }
+  #status { font-size: clamp(14px, 2vh, 20px); color: #ffd27a; min-height: 1.4em; text-align: center; }
+  .list { position: absolute; width: 36vw; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; align-content: flex-start; overflow: hidden; }
+  .chipx { padding: 3px 12px; border-radius: 999px; font-weight: 700; font-size: clamp(13px, 2.1vh, 22px); background: #ffffff16; border: 1px solid #ffffff2a; animation: pop .35s ease-out; white-space: nowrap; }
+  .chipx.t0 { border-color: #3db8ffaa; background: #3db8ff22; } .chipx.t1 { border-color: #ff7a3caa; background: #ff7a3c22; }
+  .chipx.off { opacity: .45; }
+  @keyframes pop { from { transform: scale(.4); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+  #endctl { position: fixed; left: 0; right: 0; bottom: 3vh; display: none; justify-content: center; gap: 14px; z-index: 5; }
+  #endctl.on { display: flex; }
+  #hint { position: fixed; right: 14px; bottom: 10px; font-size: 14px; color: #ffffff77; z-index: 6; transition: opacity 1s; }
+  #conn { position: fixed; top: 0; left: 0; right: 0; background: #b8860b; text-align: center; padding: 6px; font-weight: 800; display: none; z-index: 30; }
+</style>
+</head>
+<body>
+<div id="loading">NAČÍTÁM VESMÍR…</div>
+<div id="conn">Spojení se serverem bylo ztraceno – zkouším znovu…</div>
+<canvas id="c"></canvas>
+
+<div id="lobby">
+  <div id="center">
+    <div id="qrcard"><img id="qr" alt="QR kód"></div>
+    <div id="how">Naskenuj telefonem QR kód<br>a zadej svoji přezdívku</div>
+    <div id="url">…</div>
+    <div class="row" id="iprow" style="display:none"><span style="opacity:.7">Síť:</span><select id="ipsel"></select></div>
+    <div id="status"></div>
+    <div class="row">
+      <select id="dur" title="Délka hry"><option value="60">1 minuta</option><option value="120">2 minuty</option><option value="180" selected>3 minuty</option><option value="240">4 minuty</option><option value="300">5 minut</option></select>
+      <button class="go" id="start">▶ SPUSTIT HRU</button>
+    </div>
+    <div class="row"><button id="bots">🤖 +6 testovacích botů</button><button id="shuffle">🔀 Zamíchat týmy</button></div>
+  </div>
+  <div class="list" id="list0"></div>
+  <div class="list" id="list1"></div>
+</div>
+
+<div id="endctl"><button class="go" id="again" style="font-size:22px;padding:12px 26px">↻ Nová hra – stejné týmy</button><button id="again2" style="font-size:18px">🔀 Nová hra – nové týmy</button></div>
+<div id="hint">F = celá obrazovka · M = zvuk · R = nová hra</div>
+
+<script src="/render.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var canvas = $('c'), scene = null, ws = null, S = null, offset = 0, finaleStarted = false, lastTick = -1, info = null;
+
+  var Snd = KB.Audio;
+
+  /* ----------------------------- scéna ---------------------------------------- */
+  function size() {
+    var w = window.innerWidth, h = window.innerHeight; scene.resize(w, h, Math.min(window.devicePixelRatio || 1, 2)); place();
+  }
+  function place() {
+    var L = scene.layout(), u = L.H / 1080, y = L.planets[0].y + L.R + 52 * u + 74 * u;
+    [0, 1].forEach(function (i) {
+      var el = $('list' + i); el.style.left = (L.planets[i].x - L.W * 0.18) + 'px'; el.style.top = y + 'px'; el.style.height = Math.max(40, L.H - y - 10) + 'px';
+    });
+  }
+  function boot() {
+    scene = new KB.Scene({
+      canvas: canvas, onSound: function (n) { Snd.play(n); },
+      onDone: function () { $('endctl').classList.add('on'); }
+    });
+    window.addEventListener('resize', size); size();
+    $('loading').style.display = 'none';
+    last = performance.now(); requestAnimationFrame(loop);
+    loadInfo(); connect();
+  }
+  var last = 0;
+  function loop(ts) {
+    var dt = Math.max(0, Math.min(0.05, (ts - last) / 1000)); last = ts;
+    var remain = null, mode = scene.mode;
+    if (S && S.phase === 'running') {
+      remain = Math.max(0, (S.endsAt - (Date.now() + offset)) / 1000);
+      var sec = Math.ceil(remain);
+      if (remain > 0 && remain <= 10 && sec !== lastTick) { lastTick = sec; Snd.play('tick'); }
+    }
+    if (S) scene.setState({ mode: S.phase === 'running' ? 'game' : 'lobby', remain: remain, total: S.durationMs / 1000, power: S.power, players: [S.teams[0].players.length, S.teams[1].players.length] });
+    scene.step(dt); scene.render();
+    requestAnimationFrame(loop);
+  }
+
+  /* ----------------------------- QR a adresa ---------------------------------- */
+  function loadInfo() {
+    fetch('/api/info').then(function (r) { return r.json(); }).then(function (j) {
+      info = j; var sel = $('ipsel'); sel.innerHTML = '';
+      j.ips.forEach(function (x, i) { var o = document.createElement('option'); o.value = i; o.textContent = x.ip + ' (' + x.name + ')'; sel.appendChild(o); });
+      $('iprow').style.display = j.ips.length > 1 ? 'flex' : 'none'; setQR();
+    }).catch(function () { $('url').textContent = 'Nepodařilo se zjistit adresu'; });
+  }
+  function setQR() {
+    var ip = info.ips.length ? info.ips[parseInt($('ipsel').value || 0, 10)].ip : null;
+    var u = info.cloud && info.joinUrl ? info.joinUrl : ip ? 'http://' + ip + ':' + info.port + '/' : location.origin + '/';
+    $('url').textContent = u.replace(/^http:\/\//, ''); $('qr').src = '/qr.svg?u=' + encodeURIComponent(u);
+    if (!ip && !info.cloud) $('status').textContent = '⚠ Nenašel jsem síť – připoj notebook k wifi nebo hotspotu.';
+  }
+  $('ipsel').addEventListener('change', setQR);
+
+  /* ----------------------------- spojení se serverem -------------------------- */
+  function connect() {
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+    ws.onopen = function () { $('conn').style.display = 'none'; ws.send(JSON.stringify({ t: 'host', key: new URLSearchParams(location.search).get('key') || '' })); };
+    ws.onclose = function () { $('conn').style.display = 'block'; setTimeout(connect, 1200); };
+    ws.onmessage = function (ev) { var m; try { m = JSON.parse(ev.data); } catch (e) { return; } onMsg(m); };
+  }
+  function onMsg(m) {
+    if (m.t === 'denied' && m.needKey) { $('status').textContent = 'Chybí nebo je špatné heslo. Otevři adresu ve tvaru /host?key=HESLO'; return; }
+    if (m.t === 'denied') { $('status').textContent = 'Tuhle stránku musíš otevřít na stejném počítači, na kterém běží hra (http://localhost:' + (info ? info.port : 3000) + '/host).'; return; }
+    if (m.t === 'err') { $('status').textContent = m.msg; return; }
+    if (m.t === 'state') {
+      S = m; offset = m.now - Date.now(); lists(); $('lobby').style.display = m.phase === 'lobby' ? 'block' : 'none';
+      if (m.phase === 'lobby') {
+        if (finaleStarted) { scene.reset(); finaleStarted = false; $('endctl').classList.remove('on'); }
+        var n = m.teams[0].players.length + m.teams[1].players.length;
+        $('status').textContent = n < 2 ? 'Čekám na hráče… (potřebuji aspoň 2)' : 'Připojeno ' + n + ' hráčů – můžeš spustit hru!';
+      }
+    }
+    else if (m.t === 'ev') { if (scene && scene.mode !== 'finale') { scene.popup(m.team, '+1 ' + m.name); } }
+    else if (m.t === 'end') {
+      if (!finaleStarted) {
+        finaleStarted = true; $('lobby').style.display = 'none';
+        scene.setState({ power: m.result.powers }); scene.startFinale(m.result.winner, m.result.powers);
+      }
+    }
+  }
+  var listSig = ['', ''];
+  function lists() {
+    [0, 1].forEach(function (i) {
+      var sig = S.teams[i].players.map(function (p) { return p.name + (p.online ? '1' : '0') + (p.bot ? 'b' : ''); }).join('|');
+      if (sig === listSig[i]) return; listSig[i] = sig;
+      var box = $('list' + i); box.innerHTML = '';
+      S.teams[i].players.forEach(function (p) {
+        var c = document.createElement('span'); c.className = 'chipx t' + i + (p.online ? '' : ' off'); c.textContent = (p.bot ? '🤖 ' : '') + p.name; box.appendChild(c);
+      });
+    });
+  }
+
+  /* ----------------------------- ovládání -------------------------------------- */
+  function send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+  $('start').addEventListener('click', function () { Snd.init(); send({ t: 'start', seconds: parseInt($('dur').value, 10) }); });
+  $('bots').addEventListener('click', function () { Snd.init(); send({ t: 'bots', n: 6 }); });
+  $('shuffle').addEventListener('click', function () { send({ t: 'shuffle' }); });
+  $('again').addEventListener('click', function () { send({ t: 'reset', reshuffle: false }); });
+  $('again2').addEventListener('click', function () { send({ t: 'reset', reshuffle: true }); });
+  window.addEventListener('keydown', function (e) {
+    Snd.init();
+    var k = e.key.toLowerCase();
+    if (k === 'f') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+    else if (k === 'm') { Snd.setMuted(!Snd.isMuted()); $('hint').style.opacity = 1; $('hint').textContent = Snd.isMuted() ? 'Zvuk vypnut (M)' : 'Zvuk zapnut (M)'; }
+    else if (k === 'r' && S && S.phase !== 'running') send({ t: 'reset', reshuffle: false });
+  });
+  window.addEventListener('pointerdown', function () { Snd.init(); }, { once: true });
+  setTimeout(function () { $('hint').style.opacity = 0.35; }, 6000);
+  setTimeout(boot, 30);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "kosmicka-bitva",
+  "version": "1.0.0",
+  "description": "Kosmická bitva – týmová kvízová hra o Marii Terezii (2 planety, rakety, zničení planety)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "license": "MIT",
+  "dependencies": { "qrcode": "^1.5.4", "ws": "^8.18.0" }
+}

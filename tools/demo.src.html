@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kosmická bitva – ukázka animace</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #03040d; color: #fff; font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+  canvas { position: fixed; inset: 0; display: block; }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #03040d; font-size: 26px; letter-spacing: 3px; z-index: 20; }
+  #menu { position: fixed; left: 50%; top: 24vh; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 14px; z-index: 5; text-align: center; width: min(92vw, 640px); }
+  #menu p { margin: 0; color: #ffffffbb; font-size: clamp(14px, 2.2vh, 20px); line-height: 1.4; }
+  .btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  button { font: inherit; cursor: pointer; border-radius: 16px; font-weight: 900; color: #fff; padding: 14px 22px; font-size: clamp(16px, 2.6vh, 24px); border: 1px solid #ffffff44; background: #0b1230cc; backdrop-filter: blur(6px); }
+  button:hover { filter: brightness(1.25); }
+  .a { border-color: #3db8ff; box-shadow: 0 0 24px #3db8ff66; } .i { border-color: #ff7a3c; box-shadow: 0 0 24px #ff7a3c66; }
+  #skip { position: fixed; right: 12px; bottom: 10px; font-size: 13px; color: #ffffff77; z-index: 6; }
+</style>
+</head>
+<body>
+<div id="loading">NAČÍTÁM VESMÍR…</div>
+<canvas id="c"></canvas>
+<div id="menu">
+  <p><b>Ukázka finále hry</b> – takhle vypadá závěr zápasu na projektoru.<br>Krátká hra (12 s) se odehraje sama a potom vyhraje vybraný tým.</p>
+  <div class="btns">
+    <button class="a" id="b1">🌊 Vyhraje AQUA</button>
+    <button class="i" id="b2">🔥 Vyhraje IGNIS</button>
+    <button id="b3">🤝 Remíza</button>
+  </div>
+  <p style="font-size:13px;opacity:.7">Tip: zapni zvuk a celou obrazovku (klávesa F).</p>
+</div>
+<div id="skip">F = celá obrazovka · M = zvuk</div>
+<!--RENDER_JS-->
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var canvas = $('c'), scene, sim = null, Snd = KB.Audio, last = 0;
+  var NAMES = ['Tomáš', 'Anna', 'Petr', 'Eva', 'Honza', 'Klára', 'Dan', 'Lucie', 'Matěj', 'Sára', 'Adam', 'Viki', 'Rebeka', 'Ondra'];
+  function size() { scene.resize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio || 1, 2)); }
+  function start(kind) {
+    Snd.init(); $('menu').style.display = 'none'; scene.reset();
+    sim = { t: 0, total: 12, kind: kind, pa: 0, pb: 0, next: 0.3 };
+    scene.setState({ mode: 'game', total: 12, remain: 12, power: [0, 0], players: [7, 7] });
+  }
+  function loop(ts) {
+    var dt = Math.max(0, Math.min(0.05, (ts - last) / 1000)); last = ts;
+    if (sim) {
+      sim.t += dt; sim.next -= dt;
+      while (sim.next <= 0 && sim.t < sim.total) {
+        var pA = sim.kind === 'a' ? 0.6 : sim.kind === 'i' ? 0.42 : 0.5, team = Math.random() < pA ? 0 : 1;
+        if (team === 0) sim.pa++; else sim.pb++;
+        scene.popup(team, '+1 ' + NAMES[Math.floor(Math.random() * NAMES.length)]);
+        sim.next += 0.12 + Math.random() * 0.34;
+      }
+      var rem = Math.max(0, sim.total - sim.t);
+      scene.setState({ remain: rem, power: [sim.pa, sim.pb] });
+      if (sim.t > 0 && rem > 0 && rem <= 10 && Math.ceil(rem) !== sim.lastSec) { sim.lastSec = Math.ceil(rem); Snd.play('tick'); }
+      if (rem <= 0) {
+        var a = sim.pa, b = sim.pb;
+        if (sim.kind === 'a' && a <= b) a = b + 3; if (sim.kind === 'i' && b <= a) b = a + 3; if (sim.kind === 't') { a = b = Math.max(a, b); }
+        scene.setState({ power: [a, b] }); scene.startFinale(a === b ? -1 : (a > b ? 0 : 1), [a, b]); sim = null;
+      }
+    }
+    scene.step(dt); scene.render(); requestAnimationFrame(loop);
+  }
+  setTimeout(function () {
+    scene = new KB.Scene({ canvas: canvas, onSound: function (n) { Snd.play(n); }, onDone: function () { setTimeout(function () { $('menu').style.display = 'flex'; }, 1500); } });
+    window.addEventListener('resize', size); size(); scene.setState({ mode: 'lobby', players: [7, 7] });
+    $('loading').style.display = 'none'; last = performance.now(); requestAnimationFrame(loop);
+    $('b1').onclick = function () { start('a'); }; $('b2').onclick = function () { start('i'); }; $('b3').onclick = function () { start('t'); };
+    window.addEventListener('keydown', function (e) {
+      Snd.init(); var k = e.key.toLowerCase();
+      if (k === 'f') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+      else if (k === 'm') Snd.setMuted(!Snd.isMuted());
+    });
+  }, 30);
+})();
+</script>
+</body>
+</html>
