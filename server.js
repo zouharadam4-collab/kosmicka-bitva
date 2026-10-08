@@ -211,9 +211,13 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
     if (url.pathname === '/api/info') {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      const fh = req.headers['x-forwarded-host'];
-      const cloud = !!fh;
-      const joinUrl = cloud ? (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim() + '://' + fh.split(',')[0].trim() + '/' : null;
+      const hostH = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+      const bare = hostH.replace(/:\d+$/, '');
+      const privateHost = !bare || /^(localhost|127\.|\[::1\]|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(bare);
+      const ext = (process.env.RENDER_EXTERNAL_URL || '').replace(/\/+$/, '');
+      const cloud = !!ext || !privateHost;
+      const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+      const joinUrl = cloud ? (ext || (proto + '://' + hostH)) + '/' : null;
       return res.end(JSON.stringify({ port: PORT, ips: cloud ? [] : lanIps(), local: isLoopback(req), needKey: !!HOST_KEY, cloud, joinUrl }));
     }
     if (url.pathname === '/qr.svg') {
